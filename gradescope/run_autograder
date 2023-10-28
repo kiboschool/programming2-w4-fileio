@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+
+# Set up autograder files
+cp -rn /autograder/submission/* /autograder/source/
+cd /autograder/source
+
+if ls test*.py 1> /dev/null 2>&1; then
+    # If assignment has single project
+    python3 run_tests.py
+else
+    # If assignment has multiple python projects in separate subdirectories
+    test_cases=$(find . -type f -name "test*.py" -maxdepth 2)
+    for test in $test_cases; do
+        # Run the tests for each project
+        parent_dir=$(basename "$(dirname "$test")")
+        cp run_tests.py $parent_dir
+        cd $parent_dir
+        python3 run_tests.py
+        rm run_tests.py
+        cd ..
+    done
+    # Get a list of all the results.json files that were generated and
+    # combine them
+    results=$(find . -type f -name "results.json" -maxdepth 2)
+    python3 merge_results.py ${results}
+    # Cleanup after ourselves
+    rm ${results}
+fi
+# Gradescope require results.json be in specific place
+mv results.json /autograder/results/
+
