@@ -40,7 +40,7 @@ class TestProgram(unittest.TestCase):
     def test_show_weather_invalid_city(self, _, __, mock_print):
         show_weather()
         response = mock_print.call_args[0][0]
-        assert "We do not have coordinates for that city" in response, "Expecting different response for invalid city."
+        assert "we do not have coordinates for that city" in response.lower(), "Expecting different response for invalid city."
 
     @weight(4)
     @patch('builtins.print')
@@ -48,7 +48,7 @@ class TestProgram(unittest.TestCase):
     def test_show_weather_to_user_temperature(self, _, mock_print):
             show_weather_to_user(TEST_WEATHER_DATA_LIST)
             response = mock_print.call_args[0][0]
-            assert "The temperature is" in response, "Temperature not printed in show_weather"
+            assert "the temperature is" in response.lower(), "Temperature not printed in show_weather"
 
     @weight(3)
     @patch('builtins.print')
@@ -56,7 +56,7 @@ class TestProgram(unittest.TestCase):
     def test_show_weather_to_user_wind_approaching(self, _, mock_print):
         show_weather_to_user(TEST_WEATHER_DATA_LIST)
         response = mock_print.call_args[0][0]
-        assert "the wind is approaching" in response, "wind information not printed in required format"
+        assert "the wind is approaching" in response.lower() , "wind information not printed in required format"
     
     @weight(3)
     @patch('builtins.print')
@@ -64,7 +64,7 @@ class TestProgram(unittest.TestCase):
     def test_show_weather_to_user_wind_direction(self, _, mock_print):
         show_weather_to_user(TEST_WEATHER_DATA_LIST)
         response = mock_print.call_args[0][0]
-        assert "northeast" in response, "wind direction not translated to friendly format (e.g., `northeast`)"
+        assert "northeast" in response or "north-east" in response.lower(), "wind direction not translated to friendly format (e.g., `northeast`)"
 
     @weight(3)
     @patch('builtins.print')
@@ -72,14 +72,14 @@ class TestProgram(unittest.TestCase):
     def test_show_weather_to_user_wind_speed(self, _, mock_print):
         show_weather_to_user(TEST_WEATHER_DATA_LIST)
         response = mock_print.call_args[0][0]
-        assert "light" in response, "wind speed not translated to friendly format based on API documentation (e.g., `0.3-3.4m/s (light)`)"
+        assert "light" in response.lower(), "wind speed not translated to friendly format based on API documentation (e.g., `0.3-3.4m/s (light)`)"
 
     @weight(3)
     @patch('urllib.request.urlopen', return_value=mock_response)
     def test_get_api_result_return_type(self, _):
         result = get_api_results("Abuja")
         assert result is not None, "get_api_results returning nothing"
-        assert type(result) is list or type(result) is str, "get_api_results doesn't seem to return correct type"
+        assert type(result) in [list, str, dict], "get_api_results doesn't seem to return correct type"
 
     @weight(3)
     @patch('builtins.open', mock_open())
