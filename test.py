@@ -32,7 +32,7 @@ class TestProgram(unittest.TestCase):
         show_weather()
         assert not open.called, "Attempting to open a file when you shouldn't be"
 
-    @weight(3)
+    @weight(4)
     @patch('builtins.print')
     @patch('builtins.input', return_value="Invalid_City")
     @patch('builtins.open', mock_open())
@@ -42,7 +42,7 @@ class TestProgram(unittest.TestCase):
         response = mock_print.call_args[0][0]
         assert "We do not have coordinates for that city" in response, "Expecting different response for invalid city."
 
-    @weight(3)
+    @weight(4)
     @patch('builtins.print')
     @patch('urllib.request.urlopen', return_value=mock_response)
     def test_show_weather_to_user_temperature(self, _, mock_print):
