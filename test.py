@@ -1,143 +1,92 @@
 import unittest
+from unittest import mock
+from unittest.mock import patch, MagicMock, mock_open
+import json
+
 
 from gradescope_utils.autograder_utils.decorators import weight
-from main import *
 
-class TestJukebox(unittest.TestCase):
+with mock.patch('builtins.input', return_value="Abuja"):
+    from program import *
 
-    @weight(1)
-    def test_checking_account_initialization(self):
-        test_checking = CheckingAccount("Mehdi")
-        assert test_checking.balance == 0
-        assert test_checking.owner == "Mehdi"
-    
-    @weight(1)
-    def test_checking_account_deposit(self):
-        test_checking = CheckingAccount("Mehdi")
-        assert test_checking.balance == 0
-        test_checking.deposit(100)
-        assert test_checking.balance == 100
+TEST_API_RESPONSE = b'{\n\t"product" : "astro" ,\n\t"init" : "2023103018" ,\n\t"dataseries" : [\n\t{\n\t\t"timepoint" : 3,\n\t\t"cloudcover" : 2,\n\t\t"seeing" : 4,\n\t\t"transparency" : 2,\n\t\t"lifted_index" : 2,\n\t\t"rh2m" : 6,\n\t\t"wind10m" : {\n\t\t\t"direction" : "NE",\n\t\t\t"speed" : 2\n\t\t},\n\t\t"temp2m" : 27,\n\t\t"prec_type" : "none"\n\t}\n\t]\n}\n'
+TEST_WEATHER_DATA_LIST = json.loads(TEST_API_RESPONSE.decode('utf-8'))['dataseries']
 
-    @weight(1)
-    def test_checking_account_withdraw(self):
-        test_checking = CheckingAccount("Mehdi")
-        assert test_checking.balance == 0
-        assert not test_checking.withdraw(50)
-        test_checking.deposit(100)
-        assert test_checking.balance == 100
+class TestProgram(unittest.TestCase):
 
-        assert test_checking.withdraw(50)
-        assert test_checking.balance == 50
-
-    @weight(1)
-    def test_checking_account_transfer(self):
-        test_checking = CheckingAccount("Mehdi")
-        recipient = CheckingAccount("Rec")
-        assert test_checking.balance == 0
-        assert not test_checking.transfer(50, recipient)
-        test_checking.deposit(100)
-        assert test_checking.balance == 100
-        assert recipient.balance == 0
-        
-        assert test_checking.transfer(40, recipient)
-        assert test_checking.balance == 60
-        assert recipient.balance == 40
-
-    @weight(2)
-    def test_savings_account_initialization(self):
-        test_savings = SavingsAccount("Mehdi", 5)
-        assert test_savings.balance == 0
-        assert test_savings.owner == "Mehdi"
-        assert test_savings.interest_rate == 5
-    
-    @weight(2)
-    def test_savings_account_deposit(self):
-        test_savings = SavingsAccount("Mehdi", 5)
-        assert test_savings.balance == 0
-        test_savings.deposit(100)
-        assert test_savings.balance == 100
+    mock_response = MagicMock()
+    mock_response.getcode.return_value=200
+    mock_response.read.return_value = TEST_API_RESPONSE
+    mock_response.__enter__.return_value = mock_response
 
     @weight(4)
-    def test_savings_account_accrue_interest(self):
-        test_savings = SavingsAccount("Mehdi", 5)
-        assert test_savings.balance == 0
-        test_savings.deposit(200)
-        test_savings.accrue_interest()
-        assert test_savings.balance == 210  
-
-    @weight(4)
-    def test_savings_account_withdraw(self):
-        test_savings = SavingsAccount("Mehdi", 5)
-        assert test_savings.balance == 0
-        assert not test_savings.withdraw(50)
-        test_savings.deposit(100)
-        assert test_savings.balance == 100
-
-        assert test_savings.withdraw(50)
-        assert test_savings.balance == 45 # 5 fee
+    def test_map_city_to_coords(self):
+        assert len(map_city_to_coords) > 3, "Didn't add new city to list."
 
     @weight(3)
-    def test_savings_account_transfer(self):
-        test_savings = SavingsAccount("Mehdi", 5)
-        recipient = CheckingAccount("Rec")
-        assert test_savings.balance == 0
-        assert not test_savings.transfer(50, recipient)
-        test_savings.deposit(100)
-        assert test_savings.balance == 100
-        assert recipient.balance == 0
-        
-        assert test_savings.transfer(40, recipient)
-        assert test_savings.balance == 55 # 5 fee
-        assert recipient.balance == 40
+    @patch('builtins.print')
+    @patch('builtins.input', return_value="Abuja")
+    @patch('builtins.open', mock_open())
+    @patch('urllib.request.urlopen', return_value=mock_response)
+    def test_show_weather_not_read_from_file(self, _, __, ___):
+        show_weather()
+        assert not open.called, "Attempting to open a file when you shouldn't be"
 
-    @weight(2)
-    def test_locked_account_initialization(self):
-        test_locked = LockedAccount("Mehdi", 5)
-        assert test_locked.balance == 0
-        assert test_locked.owner == "Mehdi"
-        assert test_locked.interest_rate == 5
+    @weight(3)
+    @patch('builtins.print')
+    @patch('builtins.input', return_value="Invalid_City")
+    @patch('builtins.open', mock_open())
+    @patch('urllib.request.urlopen', return_value=mock_response)
+    def test_show_weather_invalid_city(self, _, __, mock_print):
+        show_weather()
+        response = mock_print.call_args[0][0]
+        assert "We do not have coordinates for that city" in response, "Expecting different response for invalid city."
+
+    @weight(3)
+    @patch('builtins.print')
+    @patch('urllib.request.urlopen', return_value=mock_response)
+    def test_show_weather_to_user_temperature(self, _, mock_print):
+            show_weather_to_user(TEST_WEATHER_DATA_LIST)
+            response = mock_print.call_args[0][0]
+            assert "The temperature is" in response, "Temperature not printed in show_weather"
+
+    @weight(3)
+    @patch('builtins.print')
+    @patch('urllib.request.urlopen', return_value=mock_response)
+    def test_show_weather_to_user_wind_approaching(self, _, mock_print):
+        show_weather_to_user(TEST_WEATHER_DATA_LIST)
+        response = mock_print.call_args[0][0]
+        assert "the wind is approaching" in response, "wind information not printed in required format"
     
-    @weight(2)
-    def test_locked_account_deposit(self):
-        test_locked = LockedAccount("Mehdi", 5)
-        assert test_locked.balance == 0
-        test_locked.deposit(100)
-        assert test_locked.balance == 100
+    @weight(3)
+    @patch('builtins.print')
+    @patch('urllib.request.urlopen', return_value=mock_response)
+    def test_show_weather_to_user_wind_direction(self, _, mock_print):
+        show_weather_to_user(TEST_WEATHER_DATA_LIST)
+        response = mock_print.call_args[0][0]
+        assert "northeast" in response, "wind direction not translated to friendly format (e.g., `northeast`)"
 
     @weight(3)
-    def test_locked_account_accrue_interest(self):
-        test_locked = LockedAccount("Mehdi", 5)
-        assert test_locked.balance == 0
-        test_locked.deposit(200)
-        test_locked.accrue_interest()
-        assert test_locked.balance == 210  
+    @patch('builtins.print')
+    @patch('urllib.request.urlopen', return_value=mock_response)
+    def test_show_weather_to_user_wind_speed(self, _, mock_print):
+        show_weather_to_user(TEST_WEATHER_DATA_LIST)
+        response = mock_print.call_args[0][0]
+        assert "light" in response, "wind speed not translated to friendly format based on API documentation (e.g., `0.3-3.4m/s (light)`)"
 
-    @weight(2)
-    def test_locked_account_withdraw(self):
-        test_locked = LockedAccount("Mehdi", 5)
-        assert test_locked.balance == 0
-        assert not test_locked.withdraw(50)
-        test_locked.deposit(100)
-        assert test_locked.balance == 100
+    @weight(3)
+    @patch('urllib.request.urlopen', return_value=mock_response)
+    def test_get_api_result_return_type(self, _):
+        result = get_api_results("Abuja")
+        assert result is not None, "get_api_results returning nothing"
+        assert type(result) is list or type(result) is str, "get_api_results doesn't seem to return correct type"
 
-        assert not test_locked.withdraw(50)
-        assert test_locked.balance == 100
-
-    @weight(2)
-    def test_locked_account_transfer(self):
-        test_locked = LockedAccount("Mehdi", 5)
-        recipient = CheckingAccount("Rec")
-
-        assert test_locked.balance == 0
-        assert not test_locked.transfer(50, recipient)
-
-        test_locked.deposit(100)
-        assert test_locked.balance == 100
-        assert recipient.balance == 0
-        
-        assert not test_locked.transfer(40, recipient)
-        assert test_locked.balance == 100
-        assert recipient.balance == 0
+    @weight(3)
+    @patch('builtins.open', mock_open())
+    @patch('urllib.request.urlopen', return_value=mock_response)
+    def test_get_api_result_not_write_file(self, _, ):
+        get_api_results("Abuja")
+        assert not open.called, "Attempting to open a file when you shouldn't be"
 
 
 if __name__ == "__main__":

@@ -58,8 +58,6 @@ def show_weather():
         weather_data_list = get_api_results(city_name)        
         show_weather_to_user(weather_data_list)
 
-
-
 def get_api_results(city):
     coords = map_city_to_coords[city]
     url = ('https://www.7timer.info/bin/astro.php?' + 
